@@ -1238,20 +1238,31 @@
         }
         
         async function init() {
-            await initFeishuLogin();
-            loadUserData();
-            loadRanking();
-            loadAwards();
-            loadWrongQuestions();
-            
-            // 检查今天是否已答过题
-            if (hasAnsweredToday()) {
-                // 已答过，显示今日成绩
-                showTodayResult();
-            } else {
-                // 未答过，初始化答题
-                userAnswers = new Array(quizData.length).fill(null);
-                initCaptcha();
+            try {
+                console.log('初始化开始...');
+                updateUserDisplay();  // 先更新显示，显示"加载中"
+                
+                console.log('等待用户登录...');
+                await initFeishuLogin();
+                
+                console.log('用户登录完成:', userData.userName);
+                loadUserData();
+                loadRanking();
+                loadAwards();
+                loadWrongQuestions();
+                
+                // 检查今天是否已答过题
+                if (hasAnsweredToday()) {
+                    // 已答过，显示今日成绩
+                    showTodayResult();
+                } else {
+                    // 未答过，初始化答题
+                    userAnswers = new Array(quizData.length).fill(null);
+                    initCaptcha();
+                }
+                console.log('初始化完成');
+            } catch (e) {
+                console.error('初始化错误:', e);
             }
         }
         
@@ -1305,7 +1316,7 @@
             document.getElementById('bottom-bar').classList.add('hidden');
         }
         
-        async function initFeishuLogin() {
+        function initFeishuLogin() {
             // 检查本地是否已保存姓名
             const savedName = localStorage.getItem('quiz_user_name');
             const savedId = localStorage.getItem('quiz_user_id');
@@ -1315,10 +1326,12 @@
                 userData.userId = savedId;
                 userData.userName = savedName;
                 updateUserDisplay();
+                return Promise.resolve();
             } else {
-                // 首次访问，显示姓名输入弹窗，等待用户输入
-                await new Promise((resolve) => {
-                    showNameModal(false, resolve);
+                // 首次访问，显示姓名输入弹窗
+                showNameModal();
+                return new Promise((resolve) => {
+                    nameModalCallback = resolve;
                 });
             }
         }
@@ -1433,7 +1446,10 @@
         }
         
         function updateUserDisplay() {
-            document.getElementById('user-display').textContent = userData.userName || '匿名用户';
+            const display = document.getElementById('user-display');
+            if (display) {
+                display.textContent = userData.userName || '点击输入姓名';
+            }
         }
         
         function loadUserData() {
