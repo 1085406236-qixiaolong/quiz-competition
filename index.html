@@ -79,6 +79,94 @@
             align-items: center;
             justify-content: center;
             font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .header .user-name {
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 3px;
+        }
+        
+        .header .user-name:hover {
+            opacity: 1;
+        }
+        
+        /* 姓名输入弹窗 */
+        .name-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .name-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .name-modal-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .name-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .name-modal-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .name-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s ease;
+            margin-bottom: 16px;
+        }
+        
+        .name-input:focus {
+            border-color: var(--primary);
+        }
+        
+        .name-modal-btn {
+            background: linear-gradient(135deg, var(--primary), #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .name-modal-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .info-card {
@@ -865,8 +953,8 @@
             <h1>🏆 2026质量月 · 销售合规知识竞赛</h1>
             <p>每日答题，提升质量合规意识</p>
             <div class="user-info">
-                <div class="user-avatar">👤</div>
-                <span id="user-display">登录中...</span>
+                <div class="user-avatar" onclick="showNameModal()">👤</div>
+                <span id="user-display" class="user-name" onclick="showNameModal()">加载中...</span>
             </div>
         </div>
         
@@ -1068,72 +1156,117 @@
         }
         
         async function initFeishuLogin() {
-            // 检查是否在飞书环境中
-            if (window.h5sdk && window.tt) {
-                try {
-                    await new Promise((resolve, reject) => {
-                        window.h5sdk.ready(() => {
-                            tt.getUserInfo({
-                                success: (res) => {
-                                    feishuUser = { 
-                                        openId: res.userInfo.openId, 
-                                        name: res.userInfo.name || res.userInfo.nickName || '飞书用户' 
-                                    };
-                                    userData.userId = feishuUser.openId;
-                                    userData.userName = feishuUser.name;
-                                    localStorage.setItem('quiz_user_id', userData.userId);
-                                    localStorage.setItem('quiz_user_name', userData.userName);
-                                    console.log('飞书登录成功:', feishuUser);
-                                    resolve();
-                                },
-                                fail: (err) => {
-                                    console.log('获取用户信息失败:', err);
-                                    reject(err);
-                                }
-                            });
-                        });
-                    });
-                } catch (e) {
-                    console.error('飞书登录异常:', e);
-                    showFeishuTip();
-                }
+            // 检查本地是否已保存姓名
+            const savedName = localStorage.getItem('quiz_user_name');
+            const savedId = localStorage.getItem('quiz_user_id');
+            
+            if (savedName && savedName !== '匿名用户' && savedId) {
+                // 已有保存的姓名，直接使用
+                userData.userId = savedId;
+                userData.userName = savedName;
+                updateUserDisplay();
             } else {
-                // 不在飞书环境中
-                console.log('不在飞书环境中');
-                showFeishuTip();
+                // 首次访问，显示姓名输入弹窗
+                showNameModal();
             }
-            updateUserDisplay();
         }
         
-        // 显示飞书提示
-        function showFeishuTip() {
-            // 检查是否有缓存的用户信息
-            if (userData.userId && userData.userName && userData.userName !== '匿名用户') {
-                return; // 有缓存，直接使用
-            }
+        // 显示姓名输入弹窗
+        function showNameModal(isEdit = false) {
+            // 移除已有的弹窗
+            const existing = document.getElementById('name-modal');
+            if (existing) existing.remove();
             
-            // 显示提示弹窗
-            const tipHtml = `
-                <div id="feishu-tip" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
-                    <div style="background:white;border-radius:16px;padding:32px;max-width:320px;text-align:center;">
-                        <div style="font-size:48px;margin-bottom:16px;">📱</div>
-                        <h3 style="font-size:18px;margin-bottom:12px;color:#1f2329;">请在飞书中打开</h3>
-                        <p style="font-size:14px;color:#646a73;margin-bottom:24px;line-height:1.6;">
-                            为了自动获取您的姓名并记录答题成绩，请在飞书群中点击链接打开此页面。
-                        </p>
-                        <button onclick="document.getElementById('feishu-tip').remove();" style="background:linear-gradient(135deg,#3370ff,#764ba2);color:white;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">
-                            我知道了
+            const currentName = userData.userName !== '匿名用户' ? userData.userName : '';
+            
+            const modalHtml = `
+                <div id="name-modal" class="name-modal">
+                    <div class="name-modal-content">
+                        <div class="name-modal-icon">✍️</div>
+                        <div class="name-modal-title">${isEdit ? '修改姓名' : '请输入您的姓名'}</div>
+                        <div class="name-modal-desc">
+                            ${isEdit ? '修改后将更新您的答题记录显示名称' : '姓名将用于记录您的答题成绩和排行榜显示'}
+                        </div>
+                        <input 
+                            type="text" 
+                            id="name-input" 
+                            class="name-input" 
+                            placeholder="请输入真实姓名"
+                            value="${currentName}"
+                            maxlength="20"
+                            oninput="onNameInput()"
+                        />
+                        <button id="name-submit-btn" class="name-modal-btn" onclick="submitName()">
+                            ${isEdit ? '确认修改' : '开始答题'}
                         </button>
                     </div>
                 </div>
             `;
-            document.body.insertAdjacentHTML('beforeend', tipHtml);
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
             
-            // 设置默认用户
-            userData.userId = 'user_' + Date.now();
-            userData.userName = '匿名用户';
+            // 聚焦输入框
+            setTimeout(() => {
+                const input = document.getElementById('name-input');
+                if (input) input.focus();
+            }, 100);
+            
+            // 回车提交
+            document.getElementById('name-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitName();
+            });
+        }
+        
+        // 输入时检查
+        function onNameInput() {
+            const input = document.getElementById('name-input');
+            const btn = document.getElementById('name-submit-btn');
+            const name = input.value.trim();
+            btn.disabled = name.length === 0;
+        }
+        
+        // 提交姓名
+        function submitName() {
+            const input = document.getElementById('name-input');
+            let name = input.value.trim();
+            
+            if (!name) {
+                input.style.borderColor = '#f53f3f';
+                return;
+            }
+            
+            // 去除多余空格
+            name = name.replace(/\s+/g, ' ');
+            
+            // 生成或复用用户ID
+            if (!userData.userId || userData.userId.startsWith('user_')) {
+                // 使用姓名的MD5作为用户ID（简单版本：直接用姓名做key）
+                userData.userId = 'user_' + hashCode(name);
+            }
+            
+            userData.userName = name;
+            
+            // 保存到本地存储
             localStorage.setItem('quiz_user_id', userData.userId);
             localStorage.setItem('quiz_user_name', userData.userName);
+            
+            // 关闭弹窗
+            document.getElementById('name-modal').remove();
+            
+            // 更新显示
+            updateUserDisplay();
+            
+            console.log('用户信息已保存:', { userId: userData.userId, userName: userData.userName });
+        }
+        
+        // 简单的字符串哈希函数（确保同一姓名生成同一ID）
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // 转换为32位整数
+            }
+            return Math.abs(hash).toString(36);
         }
         
         function updateUserDisplay() {
