@@ -1237,15 +1237,20 @@
             return userData.dailyScores[todayDate] || 0;
         }
         
-        async function init() {
-            try {
-                console.log('初始化开始...');
-                updateUserDisplay();  // 先更新显示，显示"加载中"
+        function init() {
+            console.log('初始化开始...');
+            
+            // 检查本地是否已保存姓名
+            const savedName = localStorage.getItem('quiz_user_name');
+            const savedId = localStorage.getItem('quiz_user_id');
+            
+            if (savedName && savedName !== '匿名用户' && savedId) {
+                // 已有保存的姓名，直接使用
+                userData.userId = savedId;
+                userData.userName = savedName;
+                updateUserDisplay();
                 
-                console.log('等待用户登录...');
-                await initFeishuLogin();
-                
-                console.log('用户登录完成:', userData.userName);
+                // 继续初始化
                 loadUserData();
                 loadRanking();
                 loadAwards();
@@ -1253,17 +1258,18 @@
                 
                 // 检查今天是否已答过题
                 if (hasAnsweredToday()) {
-                    // 已答过，显示今日成绩
                     showTodayResult();
                 } else {
-                    // 未答过，初始化答题
                     userAnswers = new Array(quizData.length).fill(null);
                     initCaptcha();
                 }
-                console.log('初始化完成');
-            } catch (e) {
-                console.error('初始化错误:', e);
+            } else {
+                // 首次访问，显示姓名输入弹窗
+                updateUserDisplay();
+                showNameModal();
             }
+            
+            console.log('初始化完成');
         }
         
         // 显示今日成绩（已答过）
@@ -1326,19 +1332,14 @@
                 userData.userId = savedId;
                 userData.userName = savedName;
                 updateUserDisplay();
-                return Promise.resolve();
+                return true;
             } else {
-                // 首次访问，显示姓名输入弹窗
-                showNameModal();
-                return new Promise((resolve) => {
-                    nameModalCallback = resolve;
-                });
+                // 首次访问
+                return false;
             }
         }
         
         // 显示姓名输入弹窗
-        let nameModalCallback = null;
-        
         function showNameModal(isEdit = false) {
             // 移除已有的弹窗
             const existing = document.getElementById('name-modal');
@@ -1424,10 +1425,18 @@
             
             console.log('用户信息已保存:', { userId: userData.userId, userName: userData.userName });
             
-            // 调用回调函数
-            if (nameModalCallback) {
-                nameModalCallback();
-                nameModalCallback = null;
+            // 继续初始化答题流程
+            loadUserData();
+            loadRanking();
+            loadAwards();
+            loadWrongQuestions();
+            
+            // 检查今天是否已答过题
+            if (hasAnsweredToday()) {
+                showTodayResult();
+            } else {
+                userAnswers = new Array(quizData.length).fill(null);
+                initCaptcha();
             }
         }
         
