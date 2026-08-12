@@ -973,6 +973,9 @@
         </div>
     </div>
 
+    <!-- 飞书JSSDK -->
+    <script src="https://lf1-cdn-tos.bytegoofy.com/goofy/lark/op/h5-js-sdk-1.5.3/h5-js-sdk-lark.min.js"></script>
+    
     <script>
         // 配置信息 - 从URL参数或环境变量获取API地址
         const urlParams = new URLSearchParams(window.location.search);
@@ -1065,48 +1068,72 @@
         }
         
         async function initFeishuLogin() {
-            if (window.h5sdk) {
+            // 检查是否在飞书环境中
+            if (window.h5sdk && window.tt) {
                 try {
-                    await new Promise((resolve) => {
+                    await new Promise((resolve, reject) => {
                         window.h5sdk.ready(() => {
                             tt.getUserInfo({
                                 success: (res) => {
-                                    feishuUser = { openId: res.userInfo.openId, name: res.userInfo.name || res.userInfo.nickName || '飞书用户' };
+                                    feishuUser = { 
+                                        openId: res.userInfo.openId, 
+                                        name: res.userInfo.name || res.userInfo.nickName || '飞书用户' 
+                                    };
                                     userData.userId = feishuUser.openId;
                                     userData.userName = feishuUser.name;
                                     localStorage.setItem('quiz_user_id', userData.userId);
                                     localStorage.setItem('quiz_user_name', userData.userName);
+                                    console.log('飞书登录成功:', feishuUser);
                                     resolve();
                                 },
-                                fail: () => {
-                                    if (!userData.userId) {
-                                        userData.userId = 'user_' + Date.now();
-                                        userData.userName = '匿名用户';
-                                        localStorage.setItem('quiz_user_id', userData.userId);
-                                        localStorage.setItem('quiz_user_name', userData.userName);
-                                    }
-                                    resolve();
+                                fail: (err) => {
+                                    console.log('获取用户信息失败:', err);
+                                    reject(err);
                                 }
                             });
                         });
                     });
                 } catch (e) {
-                    if (!userData.userId) {
-                        userData.userId = 'user_' + Date.now();
-                        userData.userName = '匿名用户';
-                        localStorage.setItem('quiz_user_id', userData.userId);
-                        localStorage.setItem('quiz_user_name', userData.userName);
-                    }
+                    console.error('飞书登录异常:', e);
+                    showFeishuTip();
                 }
             } else {
-                if (!userData.userId) {
-                    userData.userId = 'user_' + Date.now();
-                    userData.userName = '匿名用户';
-                    localStorage.setItem('quiz_user_id', userData.userId);
-                    localStorage.setItem('quiz_user_name', userData.userName);
-                }
+                // 不在飞书环境中
+                console.log('不在飞书环境中');
+                showFeishuTip();
             }
             updateUserDisplay();
+        }
+        
+        // 显示飞书提示
+        function showFeishuTip() {
+            // 检查是否有缓存的用户信息
+            if (userData.userId && userData.userName && userData.userName !== '匿名用户') {
+                return; // 有缓存，直接使用
+            }
+            
+            // 显示提示弹窗
+            const tipHtml = `
+                <div id="feishu-tip" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+                    <div style="background:white;border-radius:16px;padding:32px;max-width:320px;text-align:center;">
+                        <div style="font-size:48px;margin-bottom:16px;">📱</div>
+                        <h3 style="font-size:18px;margin-bottom:12px;color:#1f2329;">请在飞书中打开</h3>
+                        <p style="font-size:14px;color:#646a73;margin-bottom:24px;line-height:1.6;">
+                            为了自动获取您的姓名并记录答题成绩，请在飞书群中点击链接打开此页面。
+                        </p>
+                        <button onclick="document.getElementById('feishu-tip').remove();" style="background:linear-gradient(135deg,#3370ff,#764ba2);color:white;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">
+                            我知道了
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', tipHtml);
+            
+            // 设置默认用户
+            userData.userId = 'user_' + Date.now();
+            userData.userName = '匿名用户';
+            localStorage.setItem('quiz_user_id', userData.userId);
+            localStorage.setItem('quiz_user_name', userData.userName);
         }
         
         function updateUserDisplay() {
