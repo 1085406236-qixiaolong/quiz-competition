@@ -1316,13 +1316,20 @@
                 userData.userName = savedName;
                 updateUserDisplay();
             } else {
-                // 首次访问，显示姓名输入弹窗
-                showNameModal();
+                // 首次访问，显示姓名输入弹窗，等待用户输入
+                await new Promise((resolve) => {
+                    showNameModal(false, resolve);
+                });
             }
         }
         
         // 显示姓名输入弹窗
-        function showNameModal(isEdit = false) {
+        let nameModalCallback = null;
+        
+        function showNameModal(isEdit = false, callback = null) {
+            // 保存回调函数
+            nameModalCallback = callback;
+            
             // 移除已有的弹窗
             const existing = document.getElementById('name-modal');
             if (existing) existing.remove();
@@ -1406,6 +1413,12 @@
             updateUserDisplay();
             
             console.log('用户信息已保存:', { userId: userData.userId, userName: userData.userName });
+            
+            // 调用回调函数
+            if (nameModalCallback) {
+                nameModalCallback();
+                nameModalCallback = null;
+            }
         }
         
         // 简单的字符串哈希函数（确保同一姓名生成同一ID）
