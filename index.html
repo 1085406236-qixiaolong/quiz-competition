@@ -1071,59 +1071,138 @@
             apiBase: urlParams.get('api') || 'http://localhost:3004'
         };
         
-        // 题目数据
-        const quizData = [
-            {
-                id: 1, type: "单选题", question: "以下哪个属于《广告法》禁止使用的极限用语？",
-                options: ["最好", "优质", "推荐", "首选"], answer: 0,
-                explanation: "《广告法》第九条明确禁止使用'最'、'第一'、'唯一'等极限用语，'最好'属于禁止使用的绝对化用语。"
-            },
-            {
-                id: 2, type: "单选题", question: "商品详情页中标注'原价999元，现价599元'，以下哪种情况属于价格欺诈？",
-                options: ["原价是过去7天内的实际成交价", "原价从未实际销售过，仅为虚构", "原价是吊牌价", "原价是建议零售价"], answer: 1,
-                explanation: "虚构原价属于典型的价格欺诈行为。原价应为经营者在本次促销活动前七日内在本交易场所成交票据的最低交易价格。"
-            },
-            {
-                id: 3, type: "多选题", question: "以下哪些商品不适用'七天无理由退货'？",
-                options: ["定制商品", "鲜活易腐商品", "数码产品", "在线下载的数字商品"], answer: [0, 1, 3],
-                explanation: "《消费者权益保护法》第二十五条规定：定制商品、鲜活易腐商品、在线下载的数字化商品等不适用七天无理由退货。数码产品适用七天无理由退货。"
-            },
-            {
-                id: 4, type: "判断题", question: "小米商城运营人员在商品详情页中可以使用'全网最低价'的宣传语。",
-                options: ["正确", "错误"], answer: 1,
-                explanation: "'全网最低价'属于极限用语，违反《广告法》相关规定，不得使用。"
-            },
-            {
-                id: 5, type: "多选题", question: "以下哪些行为会影响用户体验评分？",
-                options: ["客服响应时间超过30分钟", "商品图片与实物严重不符", "促销规则清晰易懂", "退换货流程繁琐"], answer: [0, 1, 3],
-                explanation: "客服响应慢、图文不符、退换货困难都是负面因素。促销规则清晰是正面因素，不会拉低用户体验评分。"
-            },
-            {
-                id: 6, type: "多选题", question: "商品发布时，以下哪项资质信息必须在详情页展示？",
-                options: ["3C认证编号", "食品经营许可证", "商品条形码", "化妆品备案编号"], answer: [0, 1, 3],
-                explanation: "3C认证产品需展示认证编号，食品需展示经营许可证，化妆品需展示备案编号。条形码非强制展示内容。"
-            },
-            {
-                id: 7, type: "单选题", question: "以下哪种促销活动设置符合平台规则？",
-                options: ["满减券设置'满100减50'但实际只有部分商品参与", "优惠券说明中明确标注使用条件和有效期", "预售商品不标注预计发货时间", "赠品活动不说明赠品规格"], answer: 1,
-                explanation: "促销规则必须清晰透明，优惠券需明确使用条件和有效期。其他选项都存在信息不透明的问题。"
-            },
-            {
-                id: 8, type: "单选题", question: "用户投诉处理的首响时效标准是多少？",
-                options: ["24小时内", "12小时内", "2小时内", "1小时内"], answer: 2,
-                explanation: "根据小米商城服务标准，用户投诉首响时效要求在2小时内响应，体现对用户体验的重视。"
-            },
-            {
-                id: 9, type: "单选题", question: "以下哪种情况属于平台违规行为，可能面临处罚？",
-                options: ["商品标题包含竞品品牌名进行对比", "商品详情页使用实拍图", "客服主动联系用户询问满意度", "活动页面标注'限量100件'并真实限量"], answer: 0,
-                explanation: "在商品标题中包含竞品品牌名进行对比属于违规行为，可能涉及不正当竞争和商标侵权。"
-            },
-            {
-                id: 10, type: "单选题", question: "小米质量月的核心目标是什么？",
-                options: ["提升产品质量", "降低生产成本", "提高用户满意度", "增加销售额"], answer: 2,
-                explanation: "质量月的核心目标是通过提升产品和服务质量，最终提高用户满意度，这是小米'用户至上'理念的体现。"
+        // 题库数据（按日期分组，共15天）
+        const questionBank = {
+            // 第1天：广告法与宣传合规
+            '2026-09-01': [
+                { id: 1, type: "单选题", question: "以下哪个属于《广告法》禁止使用的极限用语？", options: ["最好", "优质", "推荐", "首选"], answer: 0, explanation: "《广告法》第九条明确禁止使用'最'、'第一'、'唯一'等极限用语。" },
+                { id: 2, type: "单选题", question: "商品标题中使用'全网销量第一'是否违规？", options: ["不违规，属于正常宣传", "违规，属于极限用语", "看情况而定", "只有数据支撑就不违规"], answer: 1, explanation: "'第一'属于极限用语，即使有数据支撑也不得在广告中使用。" },
+                { id: 3, type: "多选题", question: "以下哪些词汇属于广告法禁止的极限用语？", options: ["最佳", "国家级", "优质", "独一无二"], answer: [0, 1, 3], explanation: "'最佳'、'国家级'、'独一无二'都是禁止的极限用语，'优质'可以使用。" },
+                { id: 4, type: "判断题", question: "在商品详情页中使用'性价比最高'的宣传语是合规的。", options: ["正确", "错误"], answer: 1, explanation: "'最高'属于极限用语，违反《广告法》相关规定。" },
+                { id: 5, type: "单选题", question: "广告中使用'驰名商标'字样是否合规？", options: ["合规", "不合规", "看情况", "只有获得认证才可以"], answer: 1, explanation: "《广告法》明确规定禁止使用'驰名商标'字样进行宣传。" },
+                { id: 6, type: "多选题", question: "以下哪些广告行为属于虚假宣传？", options: ["夸大产品功效", "虚构用户评价", "隐瞒产品缺陷", "使用实拍图片"], answer: [0, 1, 2], explanation: "夸大功效、虚构评价、隐瞒缺陷都属于虚假宣传，使用实拍图是合规的。" },
+                { id: 7, type: "单选题", question: "商品对比广告中，可以如何展示竞品信息？", options: ["直接点名竞品品牌", "使用竞品logo进行对比", "客观描述差异，不贬低竞品", "完全虚构竞品数据"], answer: 2, explanation: "对比广告应客观描述差异，不得贬低竞品或使用竞品商标。" },
+                { id: 8, type: "判断题", question: "使用'仅限今日'的促销宣传语需要真实限时。", options: ["正确", "错误"], answer: 0, explanation: "限时促销必须真实，虚假限时属于价格欺诈。" },
+                { id: 9, type: "单选题", question: "以下哪种广告语是合规的？", options: ["全球首创", "行业领先", "技术突破，改变生活", "销量遥遥领先"], answer: 2, explanation: "'技术突破，改变生活'是描述性语言，不涉及极限用语。" },
+                { id: 10, type: "多选题", question: "广告中使用数据支撑时，需要满足哪些条件？", options: ["数据来源可查证", "数据时效性明确", "可以适当夸大", "标注数据出处"], answer: [0, 1, 3], explanation: "广告中使用数据必须来源可查、时效明确、标注出处，不得夸大。" }
+            ],
+            // 第2天：价格与促销合规
+            '2026-09-02': [
+                { id: 1, type: "单选题", question: "商品详情页中标注'原价999元，现价599元'，以下哪种情况属于价格欺诈？", options: ["原价是过去7天内的实际成交价", "原价从未实际销售过，仅为虚构", "原价是吊牌价", "原价是建议零售价"], answer: 1, explanation: "虚构原价属于典型的价格欺诈行为。" },
+                { id: 2, type: "单选题", question: "以下哪种促销活动设置符合平台规则？", options: ["满减券设置'满100减50'但实际只有部分商品参与", "优惠券说明中明确标注使用条件和有效期", "预售商品不标注预计发货时间", "赠品活动不说明赠品规格"], answer: 1, explanation: "促销规则必须清晰透明，优惠券需明确使用条件和有效期。" },
+                { id: 3, type: "多选题", question: "以下哪些行为属于价格欺诈？", options: ["虚构原价", "虚假折扣", "先涨后降", "明码标价"], answer: [0, 1, 2], explanation: "虚构原价、虚假折扣、先涨后降都属于价格欺诈，明码标价是合规的。" },
+                { id: 4, type: "判断题", question: "预售商品可以不标注预计发货时间。", options: ["正确", "错误"], answer: 1, explanation: "预售商品必须明确标注预计发货时间，保障消费者知情权。" },
+                { id: 5, type: "单选题", question: "优惠券有效期应如何设置才合规？", options: ["可以设置为1天", "至少7天", "无明确要求", "消费者可以随时延长"], answer: 1, explanation: "根据平台规则，优惠券有效期一般不少于7天。" },
+                { id: 6, type: "多选题", question: "促销活动页面必须包含哪些信息？", options: ["活动时间", "参与商品范围", "优惠规则", "免责声明"], answer: [0, 1, 2], explanation: "促销页面必须清晰展示活动时间、参与范围和优惠规则。" },
+                { id: 7, type: "单选题", question: "以下哪种赠品设置是合规的？", options: ["赠品不说明规格", "赠品价值超过主商品", "赠品明确标注规格和数量", "赠品可以是临期商品"], answer: 2, explanation: "赠品必须明确标注规格和数量，保障消费者权益。" },
+                { id: 8, type: "判断题", question: "满减活动可以设置'每满100减10'的规则。", options: ["正确", "错误"], answer: 0, explanation: "'每满减'是常见的促销方式，规则清晰即可。" },
+                { id: 9, type: "单选题", question: "商品标价为'¥99起'，以下哪种情况合规？", options: ["最低价商品已售罄", "最低价商品有库存", "最低价是会员专属价", "最低价需要凑单"], answer: 1, explanation: "'起'价商品必须有实际库存，否则属于虚假宣传。" },
+                { id: 10, type: "多选题", question: "以下哪些情况需要在促销页面标注限制条件？", options: ["部分商品不参与", "每人限购数量", "需要使用特定支付方式", "活动区域限制"], answer: [0, 1, 2, 3], explanation: "所有限制条件都必须在页面显著位置标注。" }
+            ],
+            // 第3天：消费者权益保护
+            '2026-09-03': [
+                { id: 1, type: "多选题", question: "以下哪些商品不适用'七天无理由退货'？", options: ["定制商品", "鲜活易腐商品", "数码产品", "在线下载的数字商品"], answer: [0, 1, 3], explanation: "定制商品、鲜活易腐商品、数字化商品不适用七天无理由退货。" },
+                { id: 2, type: "单选题", question: "用户投诉处理的首响时效标准是多少？", options: ["24小时内", "12小时内", "2小时内", "1小时内"], answer: 2, explanation: "用户投诉首响时效要求在2小时内响应。" },
+                { id: 3, type: "判断题", question: "消费者退货时，商品包装破损可以拒绝退货。", options: ["正确", "错误"], answer: 1, explanation: "七天无理由退货不以包装完好为前提，但可能影响退款金额。" },
+                { id: 4, type: "单选题", question: "以下哪种情况属于侵犯消费者知情权？", options: ["商品详情页展示实拍图", "隐瞒商品重要缺陷", "提供多种支付方式", "标注商品产地"], answer: 1, explanation: "隐瞒商品重要缺陷侵犯消费者知情权。" },
+                { id: 5, type: "多选题", question: "消费者个人信息保护应包括哪些内容？", options: ["明示收集目的", "获得用户同意", "加密存储数据", "可以分享给第三方"], answer: [0, 1, 2], explanation: "个人信息保护需要明示目的、获得同意、加密存储，分享给第三方需要额外授权。" },
+                { id: 6, type: "单选题", question: "商品质量问题导致退货，运费由谁承担？", options: ["消费者", "商家", "平台", "各承担一半"], answer: 1, explanation: "因质量问题退货，运费由商家承担。" },
+                { id: 7, type: "判断题", question: "客服可以在未经用户同意的情况下录音。", options: ["正确", "错误"], answer: 1, explanation: "客服录音需要提前告知并获得用户同意。" },
+                { id: 8, type: "单选题", question: "用户要求删除个人信息，商家应在多长时间内响应？", options: ["24小时内", "7个工作日内", "15个工作日内", "30个工作日内"], answer: 2, explanation: "根据《个人信息保护法》，应在15个工作日内响应。" },
+                { id: 9, type: "多选题", question: "以下哪些属于消费者的基本权利？", options: ["知情权", "选择权", "公平交易权", "无限退货权"], answer: [0, 1, 2], explanation: "知情权、选择权、公平交易权是消费者基本权利，但没有'无限退货权'。" },
+                { id: 10, type: "单选题", question: "商品存在安全隐患时，商家应如何处理？", options: ["隐瞒不报", "主动召回并通知消费者", "只通知平台", "等消费者投诉后再处理"], answer: 1, explanation: "商品存在安全隐患时，应主动召回并通知消费者。" }
+            ],
+            // 第4天：商品信息发布规范
+            '2026-09-04': [
+                { id: 1, type: "多选题", question: "商品发布时，以下哪项资质信息必须在详情页展示？", options: ["3C认证编号", "食品经营许可证", "商品条形码", "化妆品备案编号"], answer: [0, 1, 3], explanation: "3C认证产品需展示认证编号，食品需展示经营许可证，化妆品需展示备案编号。" },
+                { id: 2, type: "单选题", question: "商品主图应使用什么类型的图片？", options: ["网络图片", "实拍图或官方授权图", "动漫图片", "任意图片"], answer: 1, explanation: "商品主图应使用实拍图或品牌官方授权的图片。" },
+                { id: 3, type: "判断题", question: "商品详情页可以使用绝对化用语描述产品优势。", options: ["正确", "错误"], answer: 1, explanation: "商品详情页不得使用绝对化用语。" },
+                { id: 4, type: "单选题", question: "以下哪种商品描述是合规的？", options: ["使用'最薄'描述手机厚度", "使用具体数据'厚度7.8mm'", "使用'行业领先'描述性能", "使用'全球第一'描述销量"], answer: 1, explanation: "使用具体数据描述产品参数是合规的。" },
+                { id: 5, type: "多选题", question: "商品标题应包含哪些关键信息？", options: ["品牌名", "产品名", "关键参数", "极限用语"], answer: [0, 1, 2], explanation: "商品标题应包含品牌名、产品名和关键参数，不得使用极限用语。" },
+                { id: 6, type: "单选题", question: "食品类商品必须标注哪些信息？", options: ["生产日期", "保质期", "配料表", "以上都是"], answer: 3, explanation: "食品类商品必须标注生产日期、保质期和配料表。" },
+                { id: 7, type: "判断题", question: "商品详情页可以使用未经授权的品牌logo。", options: ["正确", "错误"], answer: 1, explanation: "未经授权不得使用品牌logo，可能构成侵权。" },
+                { id: 8, type: "单选题", question: "以下哪种商品图片处理是合规的？", options: ["过度美化导致色差", "添加虚假认证标志", "客观展示产品细节", "使用他人店铺图片"], answer: 2, explanation: "客观展示产品细节是合规的图片处理方式。" },
+                { id: 9, type: "多选题", question: "商品规格参数应如何填写？", options: ["如实填写", "可以留空", "标注单位", "使用标准术语"], answer: [0, 2, 3], explanation: "规格参数应如实填写、标注单位、使用标准术语。" },
+                { id: 10, type: "单选题", question: "商品描述中引用他人评价需要什么条件？", options: ["无需任何条件", "获得用户授权", "可以编造", "只需要是正面评价"], answer: 1, explanation: "引用他人评价需要获得用户授权。" }
+            ],
+            // 第5天：平台规则与处罚机制
+            '2026-09-05': [
+                { id: 1, type: "单选题", question: "以下哪种情况属于平台违规行为，可能面临处罚？", options: ["商品标题包含竞品品牌名进行对比", "商品详情页使用实拍图", "客服主动联系用户询问满意度", "活动页面标注'限量100件'并真实限量"], answer: 0, explanation: "在商品标题中包含竞品品牌名进行对比属于违规行为。" },
+                { id: 2, type: "单选题", question: "商家首次轻微违规，平台通常如何处理？", options: ["直接封店", "警告并要求整改", "罚款", "下架所有商品"], answer: 1, explanation: "首次轻微违规通常是警告并要求整改。" },
+                { id: 3, type: "多选题", question: "以下哪些行为会导致商品下架？", options: ["虚假宣传", "价格欺诈", "侵权行为", "正常促销"], answer: [0, 1, 2], explanation: "虚假宣传、价格欺诈、侵权行为都可能导致商品下架。" },
+                { id: 4, type: "判断题", question: "商家可以对平台处罚提出申诉。", options: ["正确", "错误"], answer: 0, explanation: "商家有权对平台处罚提出申诉。" },
+                { id: 5, type: "单选题", question: "严重违规可能导致什么后果？", options: ["仅警告", "店铺降权", "封店处理", "无任何影响"], answer: 2, explanation: "严重违规可能导致封店处理。" },
+                { id: 6, type: "多选题", question: "以下哪些属于严重违规行为？", options: ["售假", "刷单", "虚假交易", "发货延迟"], answer: [0, 1, 2], explanation: "售假、刷单、虚假交易属于严重违规，发货延迟通常是轻微违规。" },
+                { id: 7, type: "单选题", question: "商家如何避免违规？", options: ["不看平台规则", "认真学习平台规则", "抄袭其他店铺", "只关注销量"], answer: 1, explanation: "认真学习并遵守平台规则是避免违规的最佳方式。" },
+                { id: 8, type: "判断题", question: "平台处罚记录会影响店铺权重。", options: ["正确", "错误"], answer: 0, explanation: "平台处罚记录会影响店铺权重和搜索排名。" },
+                { id: 9, type: "单选题", question: "收到违规通知后，商家应在多长时间内整改？", options: ["无时间限制", "24小时内", "平台规定的时间内", "可以忽略"], answer: 2, explanation: "商家应在平台规定的时间内完成整改。" },
+                { id: 10, type: "多选题", question: "以下哪些情况可以申诉成功？", options: ["误判", "有充分证据", "超过申诉期限", "确实存在违规"], answer: [0, 1], explanation: "误判或有充分证据的情况下可以申诉成功。" }
+            ],
+            // 第6天：用户体验与服务质量
+            '2026-09-06': [
+                { id: 1, type: "多选题", question: "以下哪些行为会影响用户体验评分？", options: ["客服响应时间超过30分钟", "商品图片与实物严重不符", "促销规则清晰易懂", "退换货流程繁琐"], answer: [0, 1, 3], explanation: "客服响应慢、图文不符、退换货困难都是负面因素。" },
+                { id: 2, type: "单选题", question: "用户首次咨询客服，理想的响应时间是？", options: ["5分钟内", "30分钟内", "2小时内", "24小时内"], answer: 0, explanation: "理想响应时间应在5分钟内。" },
+                { id: 3, type: "判断题", question: "用户好评率会影响店铺搜索排名。", options: ["正确", "错误"], answer: 0, explanation: "用户好评率是搜索排名的重要因素。" },
+                { id: 4, type: "单选题", question: "以下哪种服务方式最能提升用户体验？", options: ["模板化回复", "个性化服务", "延迟回复", "不回复"], answer: 1, explanation: "个性化服务最能提升用户体验。" },
+                { id: 5, type: "多选题", question: "提升用户体验的关键要素有哪些？", options: ["快速响应", "专业解答", "主动关怀", "推诿责任"], answer: [0, 1, 2], explanation: "快速响应、专业解答、主动关怀是提升体验的关键。" },
+                { id: 6, type: "单选题", question: "用户投诉升级时，应该如何处理？", options: ["继续推诿", "及时升级处理", "忽略用户", "关闭对话"], answer: 1, explanation: "投诉升级时应及时升级处理，避免问题扩大。" },
+                { id: 7, type: "判断题", question: "售后服务质量会影响用户复购率。", options: ["正确", "错误"], answer: 0, explanation: "良好的售后服务能显著提升用户复购率。" },
+                { id: 8, type: "单选题", question: "用户评价中出现差评，商家应该如何处理？", options: ["删除差评", "分析原因并改进", "报复用户", "忽略不计"], answer: 1, explanation: "应分析差评原因并改进，提升服务质量。" },
+                { id: 9, type: "多选题", question: "以下哪些指标可以衡量用户体验？", options: ["NPS", "满意度评分", "复购率", "投诉率"], answer: [0, 1, 2, 3], explanation: "NPS、满意度评分、复购率、投诉率都是衡量用户体验的重要指标。" },
+                { id: 10, type: "单选题", question: "小米'用户至上'理念的核心是什么？", options: ["利润最大化", "以用户为中心", "销量优先", "成本控制"], answer: 1, explanation: "小米'用户至上'理念的核心是以用户为中心。" }
+            ],
+            // 第7天：综合测试（混合题库）
+            '2026-09-07': [
+                { id: 1, type: "单选题", question: "以下哪个属于《广告法》禁止使用的极限用语？", options: ["最好", "优质", "推荐", "首选"], answer: 0, explanation: "'最好'属于禁止使用的绝对化用语。" },
+                { id: 2, type: "单选题", question: "商品详情页标注'原价999元，现价599元'，哪种情况属于价格欺诈？", options: ["原价是过去7天实际成交价", "原价从未实际销售过", "原价是吊牌价", "原价是建议零售价"], answer: 1, explanation: "虚构原价属于价格欺诈。" },
+                { id: 3, type: "多选题", question: "以下哪些商品不适用'七天无理由退货'？", options: ["定制商品", "鲜活易腐商品", "数码产品", "在线下载的数字商品"], answer: [0, 1, 3], explanation: "定制商品、鲜活易腐商品、数字化商品不适用。" },
+                { id: 4, type: "判断题", question: "促销活动页面必须标注活动时间。", options: ["正确", "错误"], answer: 0, explanation: "促销页面必须清晰展示活动时间。" },
+                { id: 5, type: "单选题", question: "用户投诉首响时效标准是多少？", options: ["24小时内", "12小时内", "2小时内", "1小时内"], answer: 2, explanation: "用户投诉首响时效要求在2小时内响应。" },
+                { id: 6, type: "多选题", question: "商品发布时必须展示哪些资质？", options: ["3C认证编号", "食品经营许可证", "商品条形码", "化妆品备案编号"], answer: [0, 1, 3], explanation: "3C认证、食品许可证、化妆品备案必须展示。" },
+                { id: 7, type: "单选题", question: "以下哪种情况属于平台违规？", options: ["使用实拍图", "标题包含竞品品牌名", "标注商品参数", "提供售后服务"], answer: 1, explanation: "标题包含竞品品牌名属于违规。" },
+                { id: 8, type: "判断题", question: "客服录音需要提前告知用户。", options: ["正确", "错误"], answer: 0, explanation: "客服录音需要提前告知并获得用户同意。" },
+                { id: 9, type: "单选题", question: "小米质量月的核心目标是什么？", options: ["提升产品质量", "降低生产成本", "提高用户满意度", "增加销售额"], answer: 2, explanation: "核心目标是提高用户满意度。" },
+                { id: 10, type: "多选题", question: "以下哪些行为会影响用户体验评分？", options: ["客服响应慢", "图文不符", "退换货困难", "促销规则清晰"], answer: [0, 1, 2], explanation: "客服响应慢、图文不符、退换货困难都是负面因素。" }
+            ],
+            // 第8-15天：循环使用前7天的题目
+            '2026-09-08': '2026-09-01',
+            '2026-09-09': '2026-09-02',
+            '2026-09-10': '2026-09-03',
+            '2026-09-11': '2026-09-04',
+            '2026-09-12': '2026-09-05',
+            '2026-09-13': '2026-09-06',
+            '2026-09-14': '2026-09-07',
+            '2026-09-15': '2026-09-01'
+        };
+        
+        // 获取今天的日期
+        function getTodayDate() {
+            const now = new Date();
+            return now.getFullYear() + '-' + 
+                   String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(now.getDate()).padStart(2, '0');
+        }
+        
+        // 获取今天的题目
+        function getTodayQuestions() {
+            const today = getTodayDate();
+            let questions = questionBank[today];
+            
+            // 如果是引用其他日期的题目
+            if (typeof questions === 'string') {
+                questions = questionBank[questions];
             }
-        ];
+            
+            // 如果没有找到题目，使用默认题库
+            if (!questions) {
+                questions = questionBank['2026-09-01'];
+            }
+            
+            return questions;
+        }
+        
+        // 当前题目（根据日期动态获取）
+        let quizData = getTodayQuestions();
         
         // 状态变量
         let currentQuestion = 0;
@@ -1136,23 +1215,94 @@
         let isRetryMode = false;
         let retryQuestionId = null;
         let feishuUser = null;
+        let todayDate = getTodayDate();
         
+        // 获取用户数据
         let userData = {
             userId: localStorage.getItem('quiz_user_id') || '',
             userName: localStorage.getItem('quiz_user_name') || '',
             totalScore: parseInt(localStorage.getItem('quiz_total_score') || '0'),
             wrongQuestions: JSON.parse(localStorage.getItem('quiz_wrong_questions') || '[]'),
-            history: JSON.parse(localStorage.getItem('quiz_history') || '[]')
+            history: JSON.parse(localStorage.getItem('quiz_history') || '[]'),
+            dailyScores: JSON.parse(localStorage.getItem('quiz_daily_scores') || '{}')  // 每日得分记录
         };
         
+        // 检查今天是否已答过题
+        function hasAnsweredToday() {
+            return userData.dailyScores[todayDate] !== undefined;
+        }
+        
+        // 获取今天的得分
+        function getTodayScore() {
+            return userData.dailyScores[todayDate] || 0;
+        }
+        
         async function init() {
-            userAnswers = new Array(quizData.length).fill(null);
             await initFeishuLogin();
-            initCaptcha();
             loadUserData();
             loadRanking();
             loadAwards();
             loadWrongQuestions();
+            
+            // 检查今天是否已答过题
+            if (hasAnsweredToday()) {
+                // 已答过，显示今日成绩
+                showTodayResult();
+            } else {
+                // 未答过，初始化答题
+                userAnswers = new Array(quizData.length).fill(null);
+                initCaptcha();
+            }
+        }
+        
+        // 显示今日成绩（已答过）
+        function showTodayResult() {
+            const todayScore = getTodayScore();
+            const todayRecord = userData.history.find(h => h.date === todayDate);
+            
+            if (!todayRecord) {
+                userAnswers = new Array(quizData.length).fill(null);
+                initCaptcha();
+                return;
+            }
+            
+            // 隐藏滑动验证
+            document.getElementById('captcha-area').classList.add('hidden');
+            
+            // 显示今日成绩
+            const correctCount = todayRecord.correctCount || 0;
+            const accuracy = todayRecord.accuracy || 0;
+            const timeSpent = todayRecord.timeSpent || 0;
+            const minutes = Math.floor(timeSpent / 60);
+            const seconds = timeSpent % 60;
+            
+            let iconClass, icon, label;
+            if (todayScore >= 110) { iconClass = 'excellent'; icon = '🏆'; label = '太棒了！你是合规达人！'; }
+            else if (todayScore >= 80) { iconClass = 'good'; icon = '👍'; label = '表现不错，继续保持！'; }
+            else if (todayScore >= 60) { iconClass = 'pass'; icon = '✅'; label = '及格了，还需要加油哦！'; }
+            else { iconClass = 'fail'; icon = '💪'; label = '继续努力，下次一定行！'; }
+            
+            document.getElementById('result-area').innerHTML = `
+                <div class="result-card">
+                    <div class="result-icon ${iconClass}">${icon}</div>
+                    <div class="result-score">${todayScore}分</div>
+                    <div class="result-label">${label}</div>
+                    <div style="background:#fff3cd;border-radius:8px;padding:12px;margin-bottom:20px;color:#856404;font-size:0.9rem;">
+                        📅 今日答题已完成，明天再来吧！
+                    </div>
+                    <div class="result-stats">
+                        <div class="stat-item"><div class="stat-value">${correctCount}/${quizData.length}</div><div class="stat-label">答对题数</div></div>
+                        <div class="stat-item"><div class="stat-value">${accuracy}%</div><div class="stat-label">正确率</div></div>
+                        <div class="stat-item"><div class="stat-value">${minutes}分${seconds}秒</div><div class="stat-label">答题用时</div></div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="switchTab('ranking');document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-tab')[1].classList.add('active');document.querySelectorAll('.content-area').forEach(a=>a.classList.remove('active'));document.getElementById('tab-ranking').classList.add('active');">📊 查看排名</button>
+                        <button class="btn btn-success" onclick="switchTab('awards');document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-tab')[2].classList.add('active');document.querySelectorAll('.content-area').forEach(a=>a.classList.remove('active'));document.getElementById('tab-awards').classList.add('active');">🎁 查看奖项</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('result-area').classList.remove('hidden');
+            document.getElementById('bottom-bar').classList.add('hidden');
         }
         
         async function initFeishuLogin() {
@@ -1460,7 +1610,22 @@
                 return;
             }
             
-            userData.history.push({ date: new Date().toISOString().split('T')[0], score, timeSpent, answers: userAnswers, wrongQuestions });
+            const correctCount = quizData.length - wrongQuestions.length;
+            const accuracy = Math.round((correctCount / quizData.length) * 100);
+            
+            // 保存每日得分（关键：记录今天已答题）
+            userData.dailyScores[todayDate] = score;
+            localStorage.setItem('quiz_daily_scores', JSON.stringify(userData.dailyScores));
+            
+            userData.history.push({ 
+                date: todayDate, 
+                score, 
+                timeSpent, 
+                answers: userAnswers, 
+                wrongQuestions,
+                correctCount,
+                accuracy
+            });
             userData.totalScore += score;
             wrongQuestions.forEach(wq => {
                 const existIndex = userData.wrongQuestions.findIndex(w => w.id === wq.id);
