@@ -1339,10 +1339,7 @@
         // 显示姓名输入弹窗
         let nameModalCallback = null;
         
-        function showNameModal(isEdit = false, callback = null) {
-            // 保存回调函数
-            nameModalCallback = callback;
-            
+        function showNameModal(isEdit = false) {
             // 移除已有的弹窗
             const existing = document.getElementById('name-modal');
             if (existing) existing.remove();
