@@ -1676,8 +1676,6 @@
                 hideLoading();
             } catch (e) { hideLoading(); showToast('保存失败，数据已保存在本地'); }
             
-            const correctCount = quizData.length - wrongQuestions.length;
-            const accuracy = Math.round((correctCount / quizData.length) * 100);
             const minutes = Math.floor(timeSpent / 60), seconds = timeSpent % 60;
             let iconClass, icon, label;
             if (score >= 110) { iconClass = 'excellent'; icon = '🏆'; label = '太棒了！你是合规达人！'; }
