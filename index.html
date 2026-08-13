@@ -955,7 +955,6 @@
             <div class="user-info">
                 <div class="user-avatar" onclick="showNameModal()">👤</div>
                 <span id="user-display" class="user-name" onclick="showNameModal()">加载中...</span>
-                <span style="margin-left:8px;cursor:pointer;opacity:0.7;" onclick="showWebhookModal()">⚙️</span>
             </div>
         </div>
         
@@ -1358,53 +1357,6 @@
             }
         }
         
-        // 显示飞书Webhook配置弹窗
-        function showWebhookModal() {
-            const existing = document.getElementById('webhook-modal');
-            if (existing) existing.remove();
-            
-            const currentUrl = localStorage.getItem('feishu_webhook_url') || '';
-            
-            const modalHtml = `
-                <div id="webhook-modal" class="name-modal">
-                    <div class="name-modal-content">
-                        <div class="name-modal-icon">🔗</div>
-                        <div class="name-modal-title">配置飞书群通知</div>
-                        <div class="name-modal-desc">
-                            配置飞书群Webhook后，答题记录会自动发送到群中
-                        </div>
-                        <input 
-                            type="text" 
-                            id="webhook-input" 
-                            class="name-input" 
-                            placeholder="输入飞书群Webhook地址"
-                            value="${currentUrl}"
-                        />
-                        <button class="name-modal-btn" onclick="saveWebhook()">
-                            保存配置
-                        </button>
-                        <button style="background:none;border:none;color:#646a73;margin-top:12px;cursor:pointer;" onclick="document.getElementById('webhook-modal').remove()">
-                            跳过
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }
-        
-        // 保存Webhook配置
-        function saveWebhook() {
-            const input = document.getElementById('webhook-input');
-            const url = input.value.trim();
-            
-            if (url) {
-                localStorage.setItem('feishu_webhook_url', url);
-                showToast('Webhook配置已保存');
-            }
-            
-            document.getElementById('webhook-modal').remove();
-        }
-        
         // 显示姓名输入弹窗
         function showNameModal(isEdit = false) {
             // 移除已有的弹窗
@@ -1558,38 +1510,12 @@
             return true;
         }
         
-        // 保存数据（本地存储为主，飞书Webhook为辅）
+        // 保存数据（本地存储）
         async function saveToFeishuBitable(score, timeSpent, wrongQuestions) {
-            // 先保存到本地
+            // 保存到本地存储
             saveToLocal(score, timeSpent, wrongQuestions);
             
-            const correctCount = quizData.length - wrongQuestions.length;
-            const accuracy = Math.round((correctCount / quizData.length) * 100);
-            const timeMinutes = Math.round(timeSpent / 60 * 10) / 10;
-            
-            // 构建消息内容
-            const message = {
-                msg_type: 'text',
-                content: {
-                    text: `📊 答题记录\n\n👤 用户：${userData.userName}\n📅 日期：${todayDate}\n🏆 得分：${score}分\n✅ 正确率：${accuracy}%\n⏱️ 用时：${timeMinutes}分钟\n📝 答对：${correctCount}/${quizData.length}题`
-                }
-            };
-            
-            // 尝试通过飞书Webhook发送（如果配置了）
-            const webhookUrl = localStorage.getItem('feishu_webhook_url');
-            if (webhookUrl) {
-                try {
-                    await fetch(webhookUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(message)
-                    });
-                    console.log('答题记录已发送到飞书群');
-                } catch (e) {
-                    console.error('发送到飞书群失败:', e);
-                }
-            }
-            
+            console.log('数据已保存到本地存储');
             return { success: true, local: true };
         }
         
@@ -1835,13 +1761,17 @@
             
             showLoading();
             try {
-                await saveToFeishuBitable(score, timeSpent, wrongQuestions);
+                const result = await saveToFeishuBitable(score, timeSpent, wrongQuestions);
                 hideLoading();
-                showToast('数据已保存到飞书');
+                if (result.feishu) {
+                    showToast('数据已保存到飞书群');
+                } else {
+                    showToast('数据已保存到本地');
+                }
             } catch (e) { 
                 hideLoading(); 
                 console.error('保存失败:', e);
-                showToast('保存失败，数据已保存在本地'); 
+                showToast('数据已保存到本地'); 
             }
             
             const minutes = Math.floor(timeSpent / 60), seconds = timeSpent % 60;
