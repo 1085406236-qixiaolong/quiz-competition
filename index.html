@@ -765,75 +765,6 @@
             cursor: pointer;
         }
         
-        .captcha-container {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 16px;
-            box-shadow: var(--shadow);
-            text-align: center;
-        }
-        
-        .captcha-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 16px;
-        }
-        
-        .captcha-slider {
-            position: relative;
-            width: 100%;
-            height: 44px;
-            background: var(--bg);
-            border-radius: 22px;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-        
-        .captcha-track {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), #764ba2);
-            border-radius: 22px;
-            transition: width 0.1s ease;
-        }
-        
-        .captcha-thumb {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            transition: left 0.1s ease;
-        }
-        
-        .captcha-thumb::after {
-            content: '→';
-            font-size: 18px;
-            color: var(--primary);
-        }
-        
-        .captcha-text {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        
-        .captcha-success {
-            color: var(--success);
-            font-weight: 600;
-        }
-        
         .bottom-bar {
             position: fixed;
             bottom: 0;
@@ -1022,16 +953,7 @@
         </div>
         
         <div class="content-area active" id="tab-quiz">
-            <div class="captcha-container" id="captcha-area">
-                <div class="captcha-title">🔒 请完成验证后开始答题</div>
-                <div class="captcha-slider" id="captcha-slider">
-                    <div class="captcha-track" id="captcha-track"></div>
-                    <div class="captcha-thumb" id="captcha-thumb"></div>
-                </div>
-                <div class="captcha-text" id="captcha-text">向右滑动滑块</div>
-            </div>
-            
-            <div id="quiz-area" class="hidden"></div>
+            <div id="quiz-area"></div>
             <div id="result-area" class="hidden"></div>
         </div>
         
@@ -1082,6 +1004,7 @@
     <script>
         // 配置信息
         const CONFIG = {
+            apiBase: 'http://10.220.141.103:3004',
             bitableAppToken: 'O8DKbmBQfaXkPjs1zwqcEDmGnwb',
             answerTableId: 'tblbNkR7fv6MTMCC',
             rankingTableId: 'tblezLIbZN7keSxn'
@@ -1226,7 +1149,6 @@
         let score = 0;
         let startTime = null;
         let timerInterval = null;
-        let captchaVerified = false;
         let currentTab = 'quiz';
         let isRetryMode = false;
         let retryQuestionId = null;
@@ -1274,13 +1196,10 @@
                 loadAwards();
                 loadWrongQuestions();
                 
-                // 检查今天是否已答过题
-                if (hasAnsweredToday()) {
-                    showTodayResult();
-                } else {
-                    userAnswers = new Array(quizData.length).fill(null);
-                    initCaptcha();
-                }
+                // 直接开始答题（无需滑动验证）
+                userAnswers = new Array(quizData.length).fill(null);
+                renderQuestion();
+                document.getElementById('bottom-bar').classList.remove('hidden');
             } else {
                 // 首次访问，显示姓名输入弹窗
                 updateUserDisplay();
@@ -1290,19 +1209,17 @@
             console.log('初始化完成');
         }
         
-        // 显示今日成绩（已答过）
+        // 显示今日成绩（已答过）- 保留用于查看历史
         function showTodayResult() {
             const todayScore = getTodayScore();
             const todayRecord = userData.history.find(h => h.date === todayDate);
             
             if (!todayRecord) {
                 userAnswers = new Array(quizData.length).fill(null);
-                initCaptcha();
+                renderQuestion();
+                document.getElementById('bottom-bar').classList.remove('hidden');
                 return;
             }
-            
-            // 隐藏滑动验证
-            document.getElementById('captcha-area').classList.add('hidden');
             
             // 显示今日成绩
             const correctCount = todayRecord.correctCount || 0;
@@ -1322,8 +1239,8 @@
                     <div class="result-icon ${iconClass}">${icon}</div>
                     <div class="result-score">${todayScore}分</div>
                     <div class="result-label">${label}</div>
-                    <div style="background:#fff3cd;border-radius:8px;padding:12px;margin-bottom:20px;color:#856404;font-size:0.9rem;">
-                        📅 今日答题已完成，明天再来吧！
+                    <div style="background:#e8f8e5;border-radius:8px;padding:12px;margin-bottom:20px;color:#2d6a2e;font-size:0.9rem;">
+                        📅 今日最高分：${todayScore}分 | 可以继续答题冲击更高分！
                     </div>
                     <div class="result-stats">
                         <div class="stat-item"><div class="stat-value">${correctCount}/${quizData.length}</div><div class="stat-label">答对题数</div></div>
@@ -1331,8 +1248,8 @@
                         <div class="stat-item"><div class="stat-value">${minutes}分${seconds}秒</div><div class="stat-label">答题用时</div></div>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-primary" onclick="switchTab('ranking');document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-tab')[1].classList.add('active');document.querySelectorAll('.content-area').forEach(a=>a.classList.remove('active'));document.getElementById('tab-ranking').classList.add('active');">📊 查看排名</button>
-                        <button class="btn btn-success" onclick="switchTab('awards');document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-tab')[2].classList.add('active');document.querySelectorAll('.content-area').forEach(a=>a.classList.remove('active'));document.getElementById('tab-awards').classList.add('active');">🎁 查看奖项</button>
+                        <button class="btn btn-primary" onclick="location.reload()">🔄 再次挑战</button>
+                        <button class="btn btn-success" onclick="switchTab('ranking');document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-tab')[1].classList.add('active');document.querySelectorAll('.content-area').forEach(a=>a.classList.remove('active'));document.getElementById('tab-ranking').classList.add('active');">📊 查看排名</button>
                     </div>
                 </div>
             `;
@@ -1510,7 +1427,7 @@
             return true;
         }
         
-        // 保存数据到飞书多维表格（通过Vercel API）
+        // 保存数据到飞书多维表格（通过本地服务器API）
         async function saveToFeishuBitable(score, timeSpent, wrongQuestions) {
             // 先保存到本地
             saveToLocal(score, timeSpent, wrongQuestions);
@@ -1519,17 +1436,17 @@
             const accuracy = Math.round((correctCount / quizData.length) * 100);
             
             try {
-                // 调用Vercel API保存到飞书多维表格
-                const response = await fetch('/api/save-record', {
+                // 调用本地服务器API保存到飞书多维表格
+                const response = await fetch(CONFIG.apiBase + '/api/save-record', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        userOpenId: userData.userId,
                         userName: userData.userName,
-                        userId: userData.userId,
                         score: score,
                         timeSpent: timeSpent,
                         answers: userAnswers,
-                        quizDate: todayDate,
+                        wrongCount: wrongQuestions.length,
                         startTime: startTime.toISOString(),
                         endTime: new Date().toISOString()
                     })
@@ -1578,65 +1495,6 @@
         function loadUserData() {
             document.getElementById('total-score').textContent = userData.totalScore;
             document.getElementById('wrong-count').textContent = userData.wrongQuestions.length;
-        }
-        
-        function initCaptcha() {
-            const slider = document.getElementById('captcha-slider');
-            const track = document.getElementById('captcha-track');
-            const thumb = document.getElementById('captcha-thumb');
-            const text = document.getElementById('captcha-text');
-            
-            let isDragging = false, startX = 0, currentX = 0;
-            const sliderWidth = slider.offsetWidth;
-            const thumbWidth = thumb.offsetWidth;
-            const maxX = sliderWidth - thumbWidth - 4;
-            
-            function onStart(e) {
-                isDragging = true;
-                startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-                thumb.style.transition = 'none';
-                track.style.transition = 'none';
-            }
-            
-            function onMove(e) {
-                if (!isDragging) return;
-                e.preventDefault();
-                const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-                currentX = Math.max(0, Math.min(clientX - startX, maxX));
-                thumb.style.left = currentX + 2 + 'px';
-                track.style.width = (currentX + thumbWidth) + 'px';
-            }
-            
-            function onEnd() {
-                if (!isDragging) return;
-                isDragging = false;
-                if (currentX >= maxX - 10) {
-                    thumb.style.left = maxX + 2 + 'px';
-                    track.style.width = '100%';
-                    text.innerHTML = '<span class="captcha-success">✓ 验证成功</span>';
-                    captchaVerified = true;
-                    setTimeout(() => {
-                        document.getElementById('captcha-area').classList.add('hidden');
-                        document.getElementById('quiz-area').classList.remove('hidden');
-                        document.getElementById('bottom-bar').classList.remove('hidden');
-                        startTimer();
-                        renderQuestion();
-                    }, 500);
-                } else {
-                    thumb.style.transition = 'left 0.3s ease';
-                    track.style.transition = 'width 0.3s ease';
-                    thumb.style.left = '2px';
-                    track.style.width = '0';
-                    currentX = 0;
-                }
-            }
-            
-            thumb.addEventListener('mousedown', onStart);
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onEnd);
-            thumb.addEventListener('touchstart', onStart, { passive: false });
-            document.addEventListener('touchmove', onMove, { passive: false });
-            document.addEventListener('touchend', onEnd);
         }
         
         function startTimer() {
@@ -1716,6 +1574,13 @@
         function nextQuestion() { if (currentQuestion < quizData.length - 1) { currentQuestion++; renderQuestion(); } }
         
         async function submitQuiz() {
+            // 姓名校验：提交时必须有姓名
+            if (!userData.userName || userData.userName === '匿名用户' || userData.userName === '点击输入姓名') {
+                showNameModal();
+                showToast('请先输入姓名再提交');
+                return;
+            }
+            
             score = 0;
             const wrongQuestions = [];
             quizData.forEach((quiz, index) => {
@@ -1806,6 +1671,11 @@
             }
             
             const minutes = Math.floor(timeSpent / 60), seconds = timeSpent % 60;
+            
+            // 计算今日最高分
+            const todayScores = userData.history.filter(h => h.date === todayDate).map(h => h.score);
+            const todayMaxScore = Math.max(...todayScores, score);
+            
             let iconClass, icon, label;
             if (score >= 110) { iconClass = 'excellent'; icon = '🏆'; label = '太棒了！你是合规达人！'; }
             else if (score >= 80) { iconClass = 'good'; icon = '👍'; label = '表现不错，继续保持！'; }
@@ -1817,6 +1687,9 @@
                     <div class="result-icon ${iconClass}">${icon}</div>
                     <div class="result-score">${score}分</div>
                     <div class="result-label">${label}</div>
+                    <div style="background:#e8f8e5;border-radius:8px;padding:12px;margin-bottom:20px;color:#2d6a2e;font-size:0.9rem;">
+                        🏅 今日最高分：<strong>${todayMaxScore}分</strong> | 累计积分取每日最高分
+                    </div>
                     <div class="result-stats">
                         <div class="stat-item"><div class="stat-value">${correctCount}/${quizData.length}</div><div class="stat-label">答对题数</div></div>
                         <div class="stat-item"><div class="stat-value">${accuracy}%</div><div class="stat-label">正确率</div></div>
@@ -2005,7 +1878,6 @@
             document.getElementById('tab-quiz').classList.add('active');
             currentQuestion = quizData.indexOf(question);
             renderQuestion();
-            document.getElementById('captcha-area').classList.add('hidden');
             document.getElementById('quiz-area').classList.remove('hidden');
             document.getElementById('bottom-bar').classList.remove('hidden');
         }
