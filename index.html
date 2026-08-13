@@ -1065,10 +1065,11 @@
     <script src="https://lf1-cdn-tos.bytegoofy.com/goofy/lark/op/h5-js-sdk-1.5.3/h5-js-sdk-lark.min.js"></script>
     
     <script>
-        // 配置信息 - 从URL参数或环境变量获取API地址
-        const urlParams = new URLSearchParams(window.location.search);
+        // 配置信息
         const CONFIG = {
-            apiBase: urlParams.get('api') || 'http://localhost:3004'
+            bitableAppToken: 'O8DKbmBQfaXkPjs1zwqcEDmGnwb',
+            answerTableId: 'tblbNkR7fv6MTMCC',
+            rankingTableId: 'tblezLIbZN7keSxn'
         };
         
         // 题库数据（按日期分组，共15天）
@@ -1451,6 +1452,87 @@
             return Math.abs(hash).toString(36);
         }
         
+        // 保存数据到飞书多维表格
+        async function saveToFeishuBitable(score, timeSpent, wrongQuestions) {
+            // 检查是否在飞书环境中
+            if (!window.tt) {
+                throw new Error('不在飞书环境中');
+            }
+            
+            const correctCount = quizData.length - wrongQuestions.length;
+            const accuracy = Math.round((correctCount / quizData.length) * 100);
+            const timeMinutes = Math.round(timeSpent / 60 * 10) / 10;
+            
+            // 构建记录数据
+            const recordData = {
+                fields: {
+                    '多行文本': userData.userName,
+                    '答题日期': new Date(todayDate).getTime(),
+                    '提交时间': new Date().getTime(),
+                    '今日总分': score,
+                    '今日用时(分钟)': timeMinutes,
+                    '第1题答案': userAnswers[0] !== null ? String(userAnswers[0]) : '',
+                    '第1题得分': getQuestionScore(0, userAnswers[0]),
+                    '第2题答案': userAnswers[1] !== null ? String(userAnswers[1]) : '',
+                    '第2题得分': getQuestionScore(1, userAnswers[1]),
+                    '第3题答案': userAnswers[2] !== null ? JSON.stringify(userAnswers[2]) : '',
+                    '第3题得分': getQuestionScore(2, userAnswers[2]),
+                    '第4题答案': userAnswers[3] !== null ? String(userAnswers[3]) : '',
+                    '第4题得分': getQuestionScore(3, userAnswers[3]),
+                    '第5题答案': userAnswers[4] !== null ? JSON.stringify(userAnswers[4]) : '',
+                    '第5题得分': getQuestionScore(4, userAnswers[4]),
+                    '第6题答案': userAnswers[5] !== null ? JSON.stringify(userAnswers[5]) : '',
+                    '第6题得分': getQuestionScore(5, userAnswers[5]),
+                    '第7题答案': userAnswers[6] !== null ? String(userAnswers[6]) : '',
+                    '第7题得分': getQuestionScore(6, userAnswers[6]),
+                    '第8题答案': userAnswers[7] !== null ? String(userAnswers[7]) : '',
+                    '第8题得分': getQuestionScore(7, userAnswers[7]),
+                    '第9题答案': userAnswers[8] !== null ? String(userAnswers[8]) : '',
+                    '第9题得分': getQuestionScore(8, userAnswers[8]),
+                    '第10题答案': userAnswers[9] !== null ? String(userAnswers[9]) : '',
+                    '第10题得分': getQuestionScore(9, userAnswers[9])
+                }
+            };
+            
+            // 使用飞书JSSDK保存数据
+            return new Promise((resolve, reject) => {
+                tt.request({
+                    url: 'https://open.feishu.cn/open-apis/bitable/v1/apps/' + CONFIG.bitableAppToken + '/tables/' + CONFIG.answerTableId + '/records',
+                    method: 'POST',
+                    data: recordData,
+                    header: {
+                        'Content-Type': 'application/json'
+                    },
+                    success: (res) => {
+                        console.log('保存成功:', res);
+                        resolve(res);
+                    },
+                    fail: (err) => {
+                        console.error('保存失败:', err);
+                        reject(err);
+                    }
+                });
+            });
+        }
+        
+        // 计算单题得分
+        function getQuestionScore(questionIndex, userAnswer) {
+            if (userAnswer === null || userAnswer === undefined) return 0;
+            
+            const quiz = quizData[questionIndex];
+            if (!quiz) return 0;
+            
+            if (quiz.type === '多选题') {
+                const correct = quiz.answer.sort().toString();
+                const user = userAnswer.sort().toString();
+                if (correct === user) return 20;
+                if (userAnswer.length > 0 && quiz.answer.some(a => userAnswer.includes(a))) return 10;
+                return 0;
+            } else {
+                return userAnswer === quiz.answer ? 10 : 0;
+            }
+        }
+        
         function updateUserDisplay() {
             const display = document.getElementById('user-display');
             if (display) {
@@ -1675,12 +1757,14 @@
             
             showLoading();
             try {
-                await fetch(`${CONFIG.apiBase}/api/save-record`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userOpenId: userData.userId, score, timeSpent, answers: userAnswers, wrongCount: wrongQuestions.length, startTime: startTime.toISOString(), endTime: new Date().toISOString() })
-                });
+                await saveToFeishuBitable(score, timeSpent, wrongQuestions);
                 hideLoading();
-            } catch (e) { hideLoading(); showToast('保存失败，数据已保存在本地'); }
+                showToast('数据已保存到飞书');
+            } catch (e) { 
+                hideLoading(); 
+                console.error('保存失败:', e);
+                showToast('保存失败，数据已保存在本地'); 
+            }
             
             const minutes = Math.floor(timeSpent / 60), seconds = timeSpent % 60;
             let iconClass, icon, label;
@@ -1751,28 +1835,84 @@
         async function loadRanking() {
             const container = document.getElementById('ranking-list');
             container.innerHTML = '<div class="empty-state"><div class="icon">🏅</div><div class="text">加载中...</div></div>';
-            try {
-                const response = await fetch(`${CONFIG.apiBase}/api/ranking`);
-                const data = await response.json();
-                if (data.success && data.data.length > 0) {
-                    container.innerHTML = data.data.map((item, index) => `
-                        <div class="ranking-item">
-                            <div class="ranking-position ${index === 0 ? 'top1' : index === 1 ? 'top2' : index === 2 ? 'top3' : 'normal'}">${index + 1}</div>
-                            <div class="ranking-info"><div class="ranking-name">${item.userName || '匿名用户'}</div><div class="ranking-detail">答题${item.days}天 | 正确率${item.accuracy}%</div></div>
-                            <div class="ranking-score">${item.totalScore}分</div>
-                        </div>
-                    `).join('');
-                    const myIndex = data.data.findIndex(item => item.userOpenId === userData.userId);
-                    if (myIndex >= 0) document.getElementById('current-rank').textContent = myIndex + 1;
-                } else { container.innerHTML = '<div class="empty-state"><div class="icon">🏅</div><div class="text">暂无排名数据</div></div>'; }
-            } catch (e) { container.innerHTML = '<div class="empty-state"><div class="icon">🏅</div><div class="text">加载失败，请稍后重试</div></div>'; }
+            
+            // 使用本地存储的排名数据
+            const rankingData = [];
+            const history = userData.history || [];
+            
+            // 按用户汇总数据
+            const userMap = {};
+            history.forEach(record => {
+                if (!userMap[record.userName]) {
+                    userMap[record.userName] = {
+                        userName: record.userName,
+                        totalScore: 0,
+                        days: 0,
+                        totalCorrect: 0,
+                        totalQuestions: 0
+                    };
+                }
+                userMap[record.userName].totalScore += record.score;
+                userMap[record.userName].days += 1;
+                userMap[record.userName].totalCorrect += record.correctCount || 0;
+                userMap[record.userName].totalQuestions += quizData.length;
+            });
+            
+            // 转换为数组并排序
+            Object.values(userMap).forEach(user => {
+                user.accuracy = user.totalQuestions > 0 ? Math.round((user.totalCorrect / user.totalQuestions) * 100) : 0;
+                rankingData.push(user);
+            });
+            rankingData.sort((a, b) => b.totalScore - a.totalScore);
+            
+            if (rankingData.length > 0) {
+                container.innerHTML = rankingData.map((item, index) => `
+                    <div class="ranking-item">
+                        <div class="ranking-position ${index === 0 ? 'top1' : index === 1 ? 'top2' : index === 2 ? 'top3' : 'normal'}">${index + 1}</div>
+                        <div class="ranking-info"><div class="ranking-name">${item.userName || '匿名用户'}</div><div class="ranking-detail">答题${item.days}天 | 正确率${item.accuracy}%</div></div>
+                        <div class="ranking-score">${item.totalScore}分</div>
+                    </div>
+                `).join('');
+                
+                const myIndex = rankingData.findIndex(item => item.userName === userData.userName);
+                if (myIndex >= 0) document.getElementById('current-rank').textContent = myIndex + 1;
+            } else { 
+                container.innerHTML = '<div class="empty-state"><div class="icon">🏅</div><div class="text">暂无排名数据</div></div>'; 
+            }
         }
         
         async function loadAwards() {
             const container = document.getElementById('awards-list');
             container.innerHTML = '<div class="empty-state"><div class="icon">🎁</div><div class="text">加载中...</div></div>';
-            let rankingData = [];
-            try { const response = await fetch(`${CONFIG.apiBase}/api/ranking`); const data = await response.json(); if (data.success) rankingData = data.data; } catch (e) {}
+            
+            // 使用本地存储的排名数据
+            const rankingData = [];
+            const history = userData.history || [];
+            
+            // 按用户汇总数据
+            const userMap = {};
+            history.forEach(record => {
+                if (!userMap[userData.userName]) {
+                    userMap[userData.userName] = {
+                        userName: userData.userName,
+                        totalScore: 0,
+                        days: 0,
+                        totalCorrect: 0,
+                        totalQuestions: 0
+                    };
+                }
+                userMap[userData.userName].totalScore += record.score;
+                userMap[userData.userName].days += 1;
+                userMap[userData.userName].totalCorrect += record.correctCount || 0;
+                userMap[userData.userName].totalQuestions += quizData.length;
+            });
+            
+            // 转换为数组并排序
+            Object.values(userMap).forEach(user => {
+                user.accuracy = user.totalQuestions > 0 ? Math.round((user.totalCorrect / user.totalQuestions) * 100) : 0;
+                rankingData.push(user);
+            });
+            rankingData.sort((a, b) => b.totalScore - a.totalScore);
             
             const getWinner = (index) => index < rankingData.length ? rankingData[index].userName || '匿名用户' : null;
             const getWinners = (start, end) => { const w = []; for (let i = start; i < end && i < rankingData.length; i++) w.push(rankingData[i].userName || '匿名用户'); return w.length > 0 ? w.join('、') : null; };
