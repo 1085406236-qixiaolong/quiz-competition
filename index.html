@@ -1510,13 +1510,44 @@
             return true;
         }
         
-        // 保存数据（本地存储）
+        // 保存数据到飞书多维表格（通过Vercel API）
         async function saveToFeishuBitable(score, timeSpent, wrongQuestions) {
-            // 保存到本地存储
+            // 先保存到本地
             saveToLocal(score, timeSpent, wrongQuestions);
             
-            console.log('数据已保存到本地存储');
-            return { success: true, local: true };
+            const correctCount = quizData.length - wrongQuestions.length;
+            const accuracy = Math.round((correctCount / quizData.length) * 100);
+            
+            try {
+                // 调用Vercel API保存到飞书多维表格
+                const response = await fetch('/api/save-record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userName: userData.userName,
+                        userId: userData.userId,
+                        score: score,
+                        timeSpent: timeSpent,
+                        answers: userAnswers,
+                        quizDate: todayDate,
+                        startTime: startTime.toISOString(),
+                        endTime: new Date().toISOString()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('数据已保存到飞书多维表格');
+                    return { success: true, feishu: true };
+                } else {
+                    console.error('保存到飞书失败:', result.error);
+                    return { success: true, local: true, feishuError: result.error };
+                }
+            } catch (e) {
+                console.error('API调用失败:', e);
+                return { success: true, local: true, error: e.message };
+            }
         }
         
         // 计算单题得分
