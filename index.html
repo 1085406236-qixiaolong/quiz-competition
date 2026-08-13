@@ -1228,9 +1228,11 @@
             dailyScores: JSON.parse(localStorage.getItem('quiz_daily_scores') || '{}')  // 每日得分记录
         };
         
-        // 检查今天是否已答过题
+        // 检查今天是否已答过题（测试期间暂时关闭限制）
         function hasAnsweredToday() {
-            return userData.dailyScores[todayDate] !== undefined;
+            // TODO: 测试完成后恢复限制，改为每日限答3次
+            // return userData.dailyScores[todayDate] !== undefined;
+            return false;  // 测试期间：允许无限次答题
         }
         
         // 获取今天的得分
