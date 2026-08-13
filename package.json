@@ -1,0 +1,8 @@
+{
+  "name": "quiz-competition",
+  "version": "1.0.0",
+  "description": "2026质量月销售合规知识竞赛",
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
