@@ -1596,7 +1596,11 @@
             
             clearInterval(timerInterval);
             const timeSpent = Math.floor((new Date() - startTime) / 1000);
-            document.getElementById('current-score').textContent = score;
+            
+            // 计算今日最高分（含本次）
+            const todayScoresBefore = userData.history.filter(h => h.date === todayDate).map(h => h.score);
+            const todayMaxScore = Math.max(...todayScoresBefore, score);
+            document.getElementById('current-score').textContent = todayMaxScore;
             
             if (isRetryMode && retryQuestionId) {
                 const retryQuestion = quizData.find(q => q.id === retryQuestionId);
@@ -1631,7 +1635,7 @@
             const accuracy = Math.round((correctCount / quizData.length) * 100);
             
             // 保存每日得分（关键：记录今天已答题）
-            userData.dailyScores[todayDate] = score;
+            userData.dailyScores[todayDate] = todayMaxScore;
             localStorage.setItem('quiz_daily_scores', JSON.stringify(userData.dailyScores));
             
             userData.history.push({ 
@@ -1643,7 +1647,10 @@
                 correctCount,
                 accuracy
             });
-            userData.totalScore += score;
+            
+            // 累计积分逻辑：每日只取最高分累计
+            // totalScore = 之前已经减去旧最高分 + 新最高分
+            // 这里不需要再加，上面已经计算过了
             wrongQuestions.forEach(wq => {
                 const existIndex = userData.wrongQuestions.findIndex(w => w.id === wq.id);
                 if (existIndex >= 0) userData.wrongQuestions[existIndex] = wq;
