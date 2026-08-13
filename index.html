@@ -955,6 +955,7 @@
             <div class="user-info">
                 <div class="user-avatar" onclick="showNameModal()">👤</div>
                 <span id="user-display" class="user-name" onclick="showNameModal()">加载中...</span>
+                <span style="margin-left:8px;cursor:pointer;opacity:0.7;" onclick="showWebhookModal()">⚙️</span>
             </div>
         </div>
         
@@ -1357,6 +1358,53 @@
             }
         }
         
+        // 显示飞书Webhook配置弹窗
+        function showWebhookModal() {
+            const existing = document.getElementById('webhook-modal');
+            if (existing) existing.remove();
+            
+            const currentUrl = localStorage.getItem('feishu_webhook_url') || '';
+            
+            const modalHtml = `
+                <div id="webhook-modal" class="name-modal">
+                    <div class="name-modal-content">
+                        <div class="name-modal-icon">🔗</div>
+                        <div class="name-modal-title">配置飞书群通知</div>
+                        <div class="name-modal-desc">
+                            配置飞书群Webhook后，答题记录会自动发送到群中
+                        </div>
+                        <input 
+                            type="text" 
+                            id="webhook-input" 
+                            class="name-input" 
+                            placeholder="输入飞书群Webhook地址"
+                            value="${currentUrl}"
+                        />
+                        <button class="name-modal-btn" onclick="saveWebhook()">
+                            保存配置
+                        </button>
+                        <button style="background:none;border:none;color:#646a73;margin-top:12px;cursor:pointer;" onclick="document.getElementById('webhook-modal').remove()">
+                            跳过
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        // 保存Webhook配置
+        function saveWebhook() {
+            const input = document.getElementById('webhook-input');
+            const url = input.value.trim();
+            
+            if (url) {
+                localStorage.setItem('feishu_webhook_url', url);
+                showToast('Webhook配置已保存');
+            }
+            
+            document.getElementById('webhook-modal').remove();
+        }
+        
         // 显示姓名输入弹窗
         function showNameModal(isEdit = false) {
             // 移除已有的弹窗
@@ -1510,57 +1558,39 @@
             return true;
         }
         
-        // 尝试保存到飞书多维表格（可选）
+        // 保存数据（本地存储为主，飞书Webhook为辅）
         async function saveToFeishuBitable(score, timeSpent, wrongQuestions) {
             // 先保存到本地
             saveToLocal(score, timeSpent, wrongQuestions);
             
-            // 检查是否在飞书环境中
-            if (!window.tt) {
-                console.log('不在飞书环境中，仅保存到本地');
-                return { success: true, local: true };
+            const correctCount = quizData.length - wrongQuestions.length;
+            const accuracy = Math.round((correctCount / quizData.length) * 100);
+            const timeMinutes = Math.round(timeSpent / 60 * 10) / 10;
+            
+            // 构建消息内容
+            const message = {
+                msg_type: 'text',
+                content: {
+                    text: `📊 答题记录\n\n👤 用户：${userData.userName}\n📅 日期：${todayDate}\n🏆 得分：${score}分\n✅ 正确率：${accuracy}%\n⏱️ 用时：${timeMinutes}分钟\n📝 答对：${correctCount}/${quizData.length}题`
+                }
+            };
+            
+            // 尝试通过飞书Webhook发送（如果配置了）
+            const webhookUrl = localStorage.getItem('feishu_webhook_url');
+            if (webhookUrl) {
+                try {
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(message)
+                    });
+                    console.log('答题记录已发送到飞书群');
+                } catch (e) {
+                    console.error('发送到飞书群失败:', e);
+                }
             }
             
-            // 尝试使用飞书JSSDK保存
-            try {
-                const correctCount = quizData.length - wrongQuestions.length;
-                const timeMinutes = Math.round(timeSpent / 60 * 10) / 10;
-                
-                const recordData = {
-                    fields: {
-                        '多行文本': userData.userName,
-                        '答题日期': new Date(todayDate).getTime(),
-                        '提交时间': new Date().getTime(),
-                        '今日总分': score,
-                        '今日用时(分钟)': timeMinutes
-                    }
-                };
-                
-                return new Promise((resolve, reject) => {
-                    tt.ready(() => {
-                        console.log('飞书JSSDK准备就绪，尝试保存到多维表格...');
-                        tt.request({
-                            url: 'https://open.feishu.cn/open-apis/bitable/v1/apps/' + CONFIG.bitableAppToken + '/tables/' + CONFIG.answerTableId + '/records',
-                            method: 'POST',
-                            data: recordData,
-                            header: {
-                                'Content-Type': 'application/json'
-                            },
-                            success: (res) => {
-                                console.log('保存到多维表格成功:', res);
-                                resolve({ success: true, feishu: true });
-                            },
-                            fail: (err) => {
-                                console.error('保存到多维表格失败:', err);
-                                resolve({ success: true, local: true, feishuError: err });
-                            }
-                        });
-                    });
-                });
-            } catch (e) {
-                console.error('飞书JSSDK调用失败:', e);
-                return { success: true, local: true, error: e.message };
-            }
+            return { success: true, local: true };
         }
         
         // 计算单题得分
